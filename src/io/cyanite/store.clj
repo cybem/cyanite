@@ -7,6 +7,7 @@
             [qbits.alia            :as alia]
             [io.cyanite.util       :refer [partition-or-time
                                            go-forever go-catch]]
+            [io.cyanite.stats      :as stats]
             [clojure.tools.logging :refer [error info debug]]
             [clojure.core.async    :refer [take! <! >! go chan]])
   (:import [com.datastax.driver.core
@@ -164,9 +165,14 @@
                   (alia/execute-chan session (batch insert! values) {:consistency :any})
                   (fn [rows-or-e]
                     (if (instance? Throwable rows-or-e)
-                      (info rows-or-e "Cassandra error")
-                      (debug "Batch written")))))
+                      (do
+                        (stats/counter-inc! :store.error (count values))
+                        (info rows-or-e "Cassandra error"))
+                      (do
+                        (stats/counter-inc! :store.success (count values))
+                        (debug "Batch written"))))))
                (catch Exception e
+                 (stats/counter-inc! :store.exception 1)
                  (info e "Store processing exception")))))
           ch))
       (insert [this ttl data tenant rollup period path time]

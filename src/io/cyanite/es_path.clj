@@ -5,6 +5,7 @@
             [io.cyanite.path :refer [Pathstore]]
             [io.cyanite.util :refer [partition-or-time distinct-by
                                      go-forever go-catch]]
+            [io.cyanite.stats     :as stats]
             [io.cyanite.es-client :as internal-client]
             [clojurewerkz.elastisch.native :as esn]
             [clojurewerkz.elastisch.native.index :as esni]
@@ -174,6 +175,7 @@
               (fn [[exist dont]]
                 (go-catch
                  (debug "Fnd " (count exist) ", creating " (count dont))
+                 (stats/counter-inc! :index.create (count dont))
                  (doseq [p dont]
                    (>! create-path p))
                  (when (seq exist)

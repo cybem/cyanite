@@ -32,6 +32,12 @@
    :host    "127.0.0.1"
    :port    8080})
 
+(def ^{:doc "send statistics every 60 seconds"}
+  default-stats
+  {:enabled true
+   :interval 60
+   :hostname (.. java.net.InetAddress getLocalHost getCanonicalHostName)})
+
 (def default-index
   {:use "io.cyanite.path/memory-pathstore"})
 
@@ -121,6 +127,7 @@
     (-> (load-path path)
         (update-in [:logging] (partial merge default-logging))
         (update-in [:logging] get-instance :logging)
+        (update-in [:stats] (partial merge default-stats))
         (update-in [:store] (partial merge default-store))
         (update-in [:store] get-instance :store)
         (update-in [:carbon] (partial merge default-carbon))

@@ -5,6 +5,7 @@
             [io.cyanite.path       :as path]
             [io.cyanite.tcp        :as tcp]
             [io.cyanite.util       :refer [partition-or-time]]
+            [io.cyanite.stats      :as stats]
             [clojure.tools.logging :refer [info debug]]
             [clojure.core.async    :as async :refer [<! >! >!! go chan]]))
 
@@ -46,6 +47,7 @@
       (while true
         (let [metrics (<! input)]
           (try
+            (stats/counter-inc! :metrics.recieved (count metrics))
             (doseq [metric metrics]
               (let [formed (remove nil? (formatter rollups metric))]
                 (doseq [f formed]
@@ -57,11 +59,12 @@
 
 (defn start
   "Start a tcp carbon listener"
-  [{:keys [store carbon index]}]
+  [{:keys [store carbon index stats]}]
   (let [indexch (path/channel-for index)
         insertch (store/channel-for store)
         chan (chan 100000)
         handler (format-processor chan indexch (:rollups carbon) insertch)]
     (info "starting carbon handler: " carbon)
+    (stats/stats chan stats)
     (tcp/start-tcp-server
      (merge carbon {:response-channel chan}))))

@@ -25,7 +25,9 @@
           body (<! (:body resp))]
       (if (= 200 (:status resp))
         (func (filter :found (:docs body)))
-        (error "ES responded with non-200: " body)))))
+        (do
+          (stats/counter-inc! :index.get_error 1)
+          (error "ES responded with non-200: " body))))))
 
 (defn bulk-with-url
   [url operations func]
